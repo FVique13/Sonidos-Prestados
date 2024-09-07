@@ -11,7 +11,6 @@ import 'bootstrap/dist/js/bootstrap.bundle.min';
 import Login from './Components/Login';
 import Register from './Components/Register';
 import AdminPanel from './Routes/AdminPanel';
-
 const App = () => {
   return (
     <AuthProvider>
@@ -23,8 +22,8 @@ const App = () => {
             <Route path="/detailview/:id" element={<DetailView />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path='/Admin' element={<AdminPanel />} />
-          </Routes>
+            <Route path="/admin" element={<AdminPanel/>} />
+            </Routes>
         </Layout>
       </Router>
     </AuthProvider>

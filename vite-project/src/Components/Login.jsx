@@ -13,8 +13,7 @@ const Login = () => {
   const [passwordError, setPasswordError] = useState('');
   const [loginMessage, setLoginMessage] = useState('');
   const navigate = useNavigate();
-  const [rememberMe, setRememberMe] = useState(false);
-
+  const [rememberMe, setRememberMe] = useState(false); // Estado para el checkbox "Recordar para el futuro"
 
   const handleEmailChange = (e) => {
     const value = e.target.value;
@@ -33,30 +32,38 @@ const Login = () => {
   };
 
   const handleRememberMeChange = (e) => {
-    setRememberMe(e.target.checked);
+    setRememberMe(e.target.checked); // Actualiza el estado cuando el usuario selecciona/desselecciona el checkbox
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!emailError && email && password) {
       try {
-        const response = await fetch('http://localhost:8080/api/login', {
+
+        const response = await fetch('http://localhost:8080/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            correo: email,
-            contraseña: password
-          })
+            email: email,
+            password: password,
+          }),
         });
-
+  
         if (response.ok) {
-          const userData = await response.json();
-          login(userData.usuario); // Pasa los datos del usuario al contexto
-          setLoginMessage('Inicio de sesión exitoso');
-          navigate('/');
+          const { token } = await response.json(); // Espera el token
+  
+          if (token) {
+            // Llama a la función login del AuthContext y pasa el token y el valor de rememberMe
+            login(token, rememberMe);
+  
+            setLoginMessage('Inicio de sesión exitoso');
+            navigate('/'); // Redirige al usuario a la página principal o al destino deseado
+          } else {
+            setLoginMessage('No se recibió el token.');
+          }
         } else {
           const error = await response.text();
           setLoginMessage(error);
@@ -68,6 +75,8 @@ const Login = () => {
       setLoginMessage('Por favor, corrige los errores antes de enviar.');
     }
   };
+  
+  
 
   const handleCancel = () => {
     setEmail('');
@@ -85,24 +94,24 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label htmlFor="email" className="form-label">Correo Electrónico</label>
-            <input 
-              type="email" 
-              className="form-control" 
-              id="email" 
-              placeholder="Ingresá tu email" 
-              value={email} 
-              onChange={handleEmailChange} 
+            <input
+              type="email"
+              className="form-control"
+              id="email"
+              placeholder="Ingresá tu email"
+              value={email}
+              onChange={handleEmailChange}
               autoComplete="email"
             />
             {emailError && <div className="text-danger mt-2">{emailError}</div>}
           </div>
           <div className="mb-3">
             <label htmlFor="password" className="form-label">Contraseña</label>
-            <input 
-              type="password" 
-              className="form-control" 
-              id="password" 
-              placeholder="Ingresá tu contraseña" 
+            <input
+              type="password"
+              className="form-control"
+              id="password"
+              placeholder="Ingresá tu contraseña"
               value={password}
               onChange={handlePasswordChange}
               autoComplete="current-password"
@@ -111,12 +120,13 @@ const Login = () => {
           </div>
           <div className="d-flex flex-column justify-content-between mb-3">
             <div className="form-check">
-              <input 
-              type="checkbox" 
-              className="form-check-input" 
-              id="remember" 
-              checked={rememberMe} 
-              onChange={handleRememberMeChange}/>
+              <input
+                type="checkbox"
+                className="form-check-input"
+                id="remember"
+                checked={rememberMe}
+                onChange={handleRememberMeChange} // Manejador para el checkbox "Recordar para el futuro"
+              />
               <label className="form-check-label" htmlFor="remember">Recordar para el futuro</label>
             </div>
             <a href="#" className="text-white">¿Olvidaste tu contraseña?</a>

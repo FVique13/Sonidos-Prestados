@@ -1,35 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Form, Button, Row, Col } from 'react-bootstrap';
+import {jwtDecode} from 'jwt-decode'; // Asegúrate de usar el nombre correcto de la importación
 import { useAuth } from '../../context/AuthContext';
 
 const MisDatos = () => {
-  const { user, fetchUser } = useAuth();
+  const { token, fetchUser } = useAuth(); // Asegúrate de que `token` esté disponible en el contexto
   const [isEditing, setIsEditing] = useState(false);
   const [userData, setUserData] = useState({
-    id_usuario: '',
+    id_usuario: '', // Este campo no parece estar en el token
     nombre: '',
     apellido: '',
     correo: '',
-    direccion: '',
+    direccion: '', // Este campo no parece estar en el token
     contraseña: '',
     rol: ''
   });
-  const [originalPassword, setOriginalPassword] = useState('');
+  const [originalPassword, setOriginalPassword] = useState(''); // Este campo no está en el token
 
   useEffect(() => {
-    if (user) {
-      setUserData({
-        id_usuario: user.id_usuario,
-        nombre: user.nombre,
-        apellido: user.apellido,
-        correo: user.correo,
-        direccion: user.direccion || '',
-        contraseña: '', // Contraseña vacía para edición
-        rol: user.esAdmin ? 'Administrador' : 'Usuario'
-      });
-      setOriginalPassword(user.contraseña); // Guardar la contraseña original
+    console.log(token); // Asegúrate de que el token esté presente en la consola
+    if (token) {
+      try {
+        // Decodifica el token JWT
+        const decodedToken = jwtDecode(token);
+        console.log(decodedToken); // Asegúrate de que los datos del usuario estén presentes en la consola
+
+        // Extrae los datos del usuario desde el token decodificado
+        setUserData({
+          id_usuario: '', // Este campo no parece estar en el token
+          nombre: decodedToken.nombre || '',
+          apellido: decodedToken.apellido || '',
+          correo: decodedToken.sub || '', // Usar `sub` para el correo electrónico
+          direccion: '', // Este campo no está en el token
+          contraseña: '', // Deja este campo vacío para la edición
+          rol: (decodedToken.role && decodedToken.role.length > 0) ? decodedToken.role[0] : '' // Ajustar el rol
+        });
+        setOriginalPassword(''); // Este campo no está en el token
+      } catch (error) {
+        console.error('Error decoding token:', error);
+      }
     }
-  }, [user]);
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -44,23 +55,23 @@ const MisDatos = () => {
         apellido: userData.apellido,
         correo: userData.correo,
         direccion: userData.direccion,
-        esAdmin: userData.rol === 'Administrador'
+        esAdmin: userData.rol === 'ADMIN' // Ajustar la lógica según el rol
       };
 
       if (userData.contraseña.trim() !== '') {
         body.contraseña = userData.contraseña;
       } else {
-        body.contraseña = originalPassword; // Mantener la contraseña original si no se ha cambiado
+        body.contraseña = originalPassword; // Mantén la contraseña original si no se ha cambiado
       }
 
       const response = await fetch(`http://localhost:8080/api/usuarios/${userData.id_usuario}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`, // Envía el token en el encabezado
         },
         body: JSON.stringify(body)
       });
-
       if (response.ok) {
         await fetchUser(); // Actualiza el contexto con la información más reciente del usuario
         setIsEditing(false);

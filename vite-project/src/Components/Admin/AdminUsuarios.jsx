@@ -3,16 +3,28 @@ import { Table, Button, Container, Pagination, Row, Col } from 'react-bootstrap'
 import { useAuth } from '../../context/AuthContext';
 
 const AdminUsuarios = () => {
-    const { user, fetchUser, logout } = useAuth(); // Añadido logout
+    const { user, token, fetchUser, logout } = useAuth(); // Añadido token
     const [usuarios, setUsuarios] = useState([]);
     const [currentPage, setCurrentPage] = useState(0);
     const [totalPages, setTotalPages] = useState(1);
 
     const fetchUsuarios = async (page = 0, size = 8) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/paginated?page=${page}&size=${size}`);
+            const response = await fetch(`http://localhost:8080/api/admin/paginated?page=${page}&size=${size}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+    
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+    
             const data = await response.json();
             setUsuarios(data.content);
+            console.log(data.content);
             setTotalPages(data.totalPages);
             setCurrentPage(data.currentPage);
         } catch (error) {
@@ -26,16 +38,17 @@ const AdminUsuarios = () => {
 
     const handleAddAdmin = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/${id}/admin`, {
+            const response = await fetch(`http://localhost:8080/api/admin/usuarios/${id}/admin`, {
                 method: 'PATCH',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Incluye el token en el encabezado
                 }
             });
             if (response.ok) {
                 fetchUsuarios(currentPage);
                 if (user && user.id_usuario === id) {
-                    fetchUser(id); // Actualizar el usuario actual si es el mismo que se está modificando
+                    fetchUser(id); // Actualiza el usuario actual si es el mismo que se está modificando
                 }
             } else {
                 console.error('Error assigning admin role');
@@ -47,14 +60,18 @@ const AdminUsuarios = () => {
 
     const handleRemoveAdmin = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/${id}/remove-admin`, {
+            // const response = await fetch(`http://localhost:8080/api/usuarios/${id}/remove-admin`, {
+            const response = await fetch(`http://localhost:8080/api/admin/usuarios/${id}/remove-admin`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' }
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Incluye el token en el encabezado
+                }
             });
             if (response.ok) {
                 fetchUsuarios(currentPage);
-                if (user && user.id_usuario === id) {
-                    fetchUser(id); // Actualizar el usuario actual si es el mismo que se está modificando
+                if (user && user.idUsuario === id) {
+                    fetchUser(user.email); // Actualiza el usuario actual si es el mismo que se está modificando
                 }
             } else {
                 console.error('Error removing admin role');
@@ -66,14 +83,17 @@ const AdminUsuarios = () => {
 
     const handleDelete = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/usuarios/${id}`, {
-                method: 'DELETE'
+            const response = await fetch(`http://localhost:8080/api/admin/usuarios/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // Incluye el token en el encabezado
+                }
             });
             if (response.ok) {
                 fetchUsuarios(currentPage);
-                if (user && user.id_usuario === id) {
-                    // Opcional: hacer logout si el usuario eliminado es el usuario actual
-                    logout();
+                if (user && user.idUsuario === id) {
+                    logout(); // Opcional: hacer logout si el usuario eliminado es el usuario actual
                 }
             } else {
                 console.error('Error deleting user:', response.statusText);
@@ -110,17 +130,17 @@ const AdminUsuarios = () => {
                     </thead>
                     <tbody>
                         {usuarios.map((usuario) => (
-                            <tr key={usuario.id_usuario}>
-                                <td>{usuario.id_usuario}</td>
+                            <tr key={usuario.id}>
+                                <td>{usuario.id}</td>
                                 <td>{usuario.nombre}</td>
                                 <td>{usuario.apellido}</td>
-                                <td>{usuario.correo}</td>
-                                <td>{usuario.esAdmin ? 'Admin' : 'Usuario'}</td>
+                                <td>{usuario.email}</td>
+                                <td>{usuario.esAdmin = "ADMIN" ? 'Admin' : 'Usuario'}</td>
                                 <td>
                                     {usuario.esAdmin ? (
                                         <Button 
                                             variant="warning" 
-                                            onClick={() => handleRemoveAdmin(usuario.id_usuario)} 
+                                            onClick={() => handleRemoveAdmin(usuario.id)} 
                                             className="me-2"
                                         >
                                             -
@@ -128,7 +148,7 @@ const AdminUsuarios = () => {
                                     ) : (
                                         <Button 
                                             variant="success" 
-                                            onClick={() => handleAddAdmin(usuario.id_usuario)} 
+                                            onClick={() => handleAddAdmin(usuario.id)} 
                                             className="me-2"
                                         >
                                             +
@@ -136,7 +156,7 @@ const AdminUsuarios = () => {
                                     )}
                                     <Button 
                                         variant="danger" 
-                                        onClick={() => handleDelete(usuario.id_usuario)}
+                                        onClick={() => handleDelete(usuario.id)}
                                     >
                                         Eliminar
                                     </Button>
